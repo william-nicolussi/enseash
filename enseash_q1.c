@@ -7,10 +7,8 @@
 // Function to check if input matches "exit"
 int is_exit_command(char *input)
 {
-    int input_length = strlen(input);
-
     // Ensure exact match, considering newline removal
-    return (strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0) && (input_length == strlen(EXIT_STRING));
+    return (strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0);
 }
 
 int main()
