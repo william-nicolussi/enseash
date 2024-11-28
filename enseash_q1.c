@@ -4,38 +4,38 @@
 #define PROMPT "Welcome to ENSEA Tiny Shell.\nTo leave, press 'exit'.\nenseash %\n"
 #define EXIT_STRING "exit"
 
+// Function to check if input matches "exit"
+int is_exit_command(const char *input)
+{
+    int input_length = strlen(input);
+
+    // Ensure exact match, considering newline removal
+    return (strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0) && (input_length == strlen(EXIT_STRING));
+}
+
 int main()
 {
-	char buffer[128];  // Buffer to store input
-	int bytesRead;
-	
-	int typedExit = 0;	//variable that becomes 1 if user types EXIT_STRING
-	
-	do
-	{
-		write(STDOUT_FILENO,PROMPT,strlen(PROMPT));
-	
-		bytesRead = read(0, buffer, sizeof(buffer) - 1);
+    char buffer[128]; // Buffer to store user input
+    int bytesRead;
+    int typedExit = 0; //variable that becomes 1 if user types EXIT_STRING
 
-		// Null-terminate the string (since `read` doesn't do this)
-		buffer[bytesRead] = '\0';
+    do{
+        // Display prompt
+        write(STDOUT_FILENO, PROMPT, strlen(PROMPT));
 
-		//equivalent of printf("You entered: %s", buffer);
-		write(STDOUT_FILENO,buffer,strlen(buffer));
-		
-		char lenEX = strlen(EXIT_STRING);
-		write(STDOUT_FILENO, lenEX, 1);
-		
-		char lenB = strlen(buffer);
-		write(STDOUT_FILENO, lenB, 1);
-		
-		//compare string charachters and string lenght
-		if(strncmp(buffer, EXIT_STRING, strlen(EXIT_STRING)) == 0 && strlen(buffer)==strlen(EXIT_STRING)+1)
-		{
-			write(STDOUT_FILENO,"exit typed", 10);
-			typedExit = 1;
-		}
-	} while(typedExit == 0);
-	
-	return 0;
+        // Read input
+        //bytesRead = read(STDIN_FILENO, buffer, sizeof(buffer) - 1);
+        bytesRead = read(0, buffer, sizeof(buffer) - 1);
+
+        // Null-terminate the input string (remove trailing newline)
+        buffer[bytesRead - 1] = '\0';
+
+        // Check if the command is "exit"
+        if (is_exit_command(buffer))
+        {
+            typedExit = 1;
+        }
+    } while (!typedExit);
+
+    return 0;
 }
