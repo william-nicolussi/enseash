@@ -5,7 +5,7 @@
 #define EXIT_STRING "exit"
 
 // Function to check if input matches "exit"
-int is_exit_command(const char *input)
+int is_exit_command(char *input)
 {
     int input_length = strlen(input);
 
