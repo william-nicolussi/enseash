@@ -55,8 +55,6 @@ int main()
         } else {
             // Parent process: wait for the child to complete
             waitpid(pid, &status, 0);
-
-            // Optionally, you can display the exit status of the command here
         }
     } while (!is_EXIT_STRING(inputUserBuffer));
 
