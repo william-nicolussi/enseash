@@ -14,4 +14,4 @@ clean:
 .PHONY: all clean indent
 
 exec:
-	./enseash_q1
+	./enseash_q2
