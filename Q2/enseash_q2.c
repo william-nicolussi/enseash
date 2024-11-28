@@ -4,38 +4,40 @@
 #include <sys/wait.h>
 #include <stdio.h> // For debugging purposes only (if needed during testing)
 
-#define START "Welcome to ENSEA Tiny Shell.\nTo leave, press 'exit'.\n"
-#define PROMPT "enseash %"
-#define EXIT_MESSAGE "Bye bye...\n"
-#define EXIT_CODE "exit"
+#define EXIT_STRING "exit"
 #define MAX_SIZE 128
+#define START_MESSAGE "Welcome to ENSEA Tiny Shell.\nTo leave, type '" EXIT_STRING "'.\n"
+#define PROMPT_MESSAGE "enseash % "
+#define EXIT_MESSAGE "Bye bye...\n"
+#define COMMAND_NOT_FOUND_MESSAGE "Command not found.\n"
 
-int main() {
-    char command[MAX_SIZE]; // Buffer to store user input
+// Function to check if input matches EXIT_STRING
+int is_EXIT_STRING(char *input)
+{	
+    if(strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0)
+    {
+		return 1;
+	}
+    return 0;
+}
+
+int main()
+{
+    char inputUserBuffer[MAX_SIZE];
     int pid, status;        // For managing process IDs and status
 
     // Display the startup message
-    write(STDOUT_FILENO, START, strlen(START));
+    write(STDOUT_FILENO, START_MESSAGE, strlen(START_MESSAGE));
 
-    while (1) {
+    do{
         // Display the prompt
         write(STDOUT_FILENO, PROMPT, strlen(PROMPT));
 
         // Read user input
-        ssize_t bytesRead = read(STDIN_FILENO, command, MAX_SIZE - 1);
-        if (bytesRead <= 0) {
-            write(STDOUT_FILENO, "\nError reading input.\n", 22);
-            continue;
-        }
+        int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
 
         // Null-terminate the input string (remove newline)
-        command[bytesRead - 1] = '\0';
-
-        // Check if the user wants to exit
-        if (strcmp(command, EXIT_CODE) == 0) {
-            write(STDOUT_FILENO, EXIT_MESSAGE, strlen(EXIT_MESSAGE));
-            break; // Exit the shell loop
-        }
+        inputUserBuffer[bytesRead - 1] = '\0';
 
         // Fork a new process to handle the command
         pid = fork();
@@ -46,7 +48,7 @@ int main() {
 
         if (pid == 0) {
             // Child process: execute the command
-            execlp(command, command, (char *)NULL);
+            execlp(inputUserBuffer, inputUserBuffer, (char *)NULL);
 
             write(STDOUT_FILENO, "Error: Command not found.\n", 26);
             _exit(1); // Use _exit to terminate child process immediately
@@ -56,7 +58,9 @@ int main() {
 
             // Optionally, you can display the exit status of the command here
         }
-    }
+    } while (!is_EXIT_STRING(inputUserBuffer));
 
-    return 0; // Exit successfully
+	write(STDOUT_FILENO, EXIT_MESSAGE, strlen(EXIT_MESSAGE));
+	
+    return 0;
 }

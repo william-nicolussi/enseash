@@ -1,38 +1,43 @@
 #include <unistd.h>
 #include <string.h>
 
-#define PROMPT "Welcome to ENSEA Tiny Shell.\nTo leave, press 'exit'.\nenseash %\n"
 #define EXIT_STRING "exit"
+#define MAX_SIZE 128
+#define START_MESSAGE "Welcome to ENSEA Tiny Shell.\nTo leave, type '" EXIT_STRING "'.\n"
+#define PROMPT_MESSAGE "enseash % "
+#define EXIT_MESSAGE "Bye bye...\n"
 
-// Function to check if input matches "exit"
-int is_exit_command(char *input)
-{
-    // Ensure exact match, considering newline removal
-    return (strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0);
+// Function to check if input matches EXIT_STRING
+int is_EXIT_STRING(char *input)
+{	
+    if(strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0)
+    {
+		return 1;
+	}
+    return 0;
 }
 
 int main()
 {
-    char inputUserBuffer[128];
-    int bytesRead;	 
-    int typedExit = 0; //variable that becomes 1 if user types EXIT_STRING
+    char inputUserBuffer[MAX_SIZE];
+    int bytesRead;
 
+	// Display the start message only at the beginning
+	write(STDOUT_FILENO, START_MESSAGE, strlen(START_MESSAGE));
+	
     do{
         // Display prompt
-        write(STDOUT_FILENO, PROMPT, strlen(PROMPT));
+        write(STDOUT_FILENO, PROMPT_MESSAGE, strlen(PROMPT_MESSAGE));
 
         // Read input
-        bytesRead = read(0, buffer, sizeof(buffer));
+        bytesRead = read(0, inputUserBuffer, sizeof(inputUserBuffer));
 
         // Null-terminate the input string (remove trailing newline)
-        buffer[bytesRead - 1] = '\0';
+        inputUserBuffer[bytesRead - 1] = '\0';
 
-        // Check if the command is "exit"
-        if (is_exit_command(buffer))
-        {
-            typedExit = 1;
-        }
-    } while (!typedExit);
+    } while (!is_EXIT_STRING(inputUserBuffer));
 
+	write(STDOUT_FILENO, EXIT_MESSAGE, strlen(EXIT_MESSAGE));
+	
     return 0;
 }
