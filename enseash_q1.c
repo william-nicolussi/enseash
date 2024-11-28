@@ -13,7 +13,7 @@ int is_exit_command(char *input)
 
 int main()
 {
-    char buffer[128]; // Buffer to store user input
+    char inputUserBuffer[128];
     int bytesRead;
     int typedExit = 0; //variable that becomes 1 if user types EXIT_STRING
 
@@ -22,8 +22,7 @@ int main()
         write(STDOUT_FILENO, PROMPT, strlen(PROMPT));
 
         // Read input
-        //bytesRead = read(STDIN_FILENO, buffer, sizeof(buffer) - 1);
-        bytesRead = read(0, buffer, sizeof(buffer) - 1);
+        bytesRead = read(0, buffer, sizeof(buffer));
 
         // Null-terminate the input string (remove trailing newline)
         buffer[bytesRead - 1] = '\0';
