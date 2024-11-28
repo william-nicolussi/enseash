@@ -1,0 +1,10 @@
+#include <unistd.h>
+#include <string.h>
+
+#define PROMPT "Welcome to ENSEA Tiny Shell.\nTo leave, press 'exit'.\nenseash %\n"
+
+int main()
+{
+	write(STDOUT_FILENO,PROMPT,strlen(PROMPT));
+	//read() 
+}
