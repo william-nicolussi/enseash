@@ -1,8 +1,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/wait.h>
-#include <stdio.h> // For debugging purposes only (if needed during testing)
 
 #define EXIT_STRING "exit"
 #define MAX_SIZE 128
@@ -11,52 +11,72 @@
 #define EXIT_MESSAGE "Bye bye...\n"
 #define COMMAND_NOT_FOUND_MESSAGE "Command not found.\n"
 
-// Function to check if input matches EXIT_STRING
-int is_EXIT_STRING(char *input)
+#define FORTUNE_MESSAGE "Today is what happened to yesterday.\n"
+#define FORTUNE_STRING_INPUT "fortune"
+#define DATE_STRING_INPUT "date"
+
+// Function to check if the two stings are the same
+int stringsAreEquals(char* str1, char* str2)
 {	
-    if(strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0)
+    if(strncmp(str1, str2, strlen(str1))==0 && strncmp(str1, str2, strlen(str2))==0)
     {
 		return 1;
 	}
     return 0;
 }
 
+// Function to execute if user enters FORTUNE_STRING_INPUT
+void execute_fortune()
+{
+    write(STDOUT_FILENO, FORTUNE_MESSAGE, strlen(FORTUNE_MESSAGE));
+}
+
+// Function to execute if user enters DATE_STRING_INPUT
+void execute_date()
+{
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("fork failed");
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+        // Child process to execute system's date command
+        char *args[] = {"date", NULL};
+        execvp(args[0], args);
+        perror("Command failed");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process waits for his child
+        wait(NULL);
+    }
+}
+
 int main()
 {
     char inputUserBuffer[MAX_SIZE];
-    int pid, status;        // For managing process IDs and status
 
-    // Display the startup message
     write(STDOUT_FILENO, START_MESSAGE, strlen(START_MESSAGE));
 
     do{
-        // Display the prompt
-        write(STDOUT_FILENO, PROMPT, strlen(PROMPT));
-
-        // Read user input
+        write(STDOUT_FILENO, PROMPT_MESSAGE, strlen(PROMPT_MESSAGE));
         int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
-
-        // Null-terminate the input string (remove newline)
         inputUserBuffer[bytesRead - 1] = '\0';
+        
+        // If string correspond to a command, execute the corresponding function
+        // otherwise write the COMMAND_NOT_FOUND_MESSAGE
+		if(stringsAreEquals(inputUserBuffer, FORTUNE_STRING_INPUT))
+		{
+			execute_fortune();
+		}
+		else if (stringsAreEquals(inputUserBuffer, DATE_STRING_INPUT))
+		{
+			execute_date();
+		}
+		else
+		{
+			write(STDOUT_FILENO, COMMAND_NOT_FOUND_MESSAGE, strlen(COMMAND_NOT_FOUND_MESSAGE));
+		}
 
-        // Fork a new process to handle the command
-        pid = fork();
-        if (pid == -1) {
-            write(STDOUT_FILENO, "Error: Unable to fork.\n", 23);
-            continue; // Skip iteration on error
-        }
-
-        if (pid == 0) {
-            // Child process: execute the command
-            execlp(inputUserBuffer, inputUserBuffer, (char *)NULL);
-
-            write(STDOUT_FILENO, "Error: Command not found.\n", 26);
-            _exit(1); // Use _exit to terminate child process immediately
-        } else {
-            // Parent process: wait for the child to complete
-            waitpid(pid, &status, 0);
-        }
-    } while (!is_EXIT_STRING(inputUserBuffer));
+    } while (!stringsAreEquals(inputUserBuffer, EXIT_STRING));
 
 	write(STDOUT_FILENO, EXIT_MESSAGE, strlen(EXIT_MESSAGE));
 	
