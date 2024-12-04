@@ -10,7 +10,7 @@
 // Function to check if input matches EXIT_STRING
 int is_EXIT_STRING(char *input)
 {	
-    if(strncmp(input, EXIT_STRING, strlen(EXIT_STRING)) == 0)
+    if(strncmp(input, EXIT_STRING, strlen(input)) == 0)
     {
 		return 1;
 	}
