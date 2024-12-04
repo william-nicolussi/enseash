@@ -14,11 +14,14 @@
 #define FORTUNE_MESSAGE "Today is what happened to yesterday.\n"
 #define FORTUNE_STRING_INPUT "fortune"
 #define DATE_STRING_INPUT "date"
+#define FORK_FAILED_MESSAGE "fork failed"
+#define COMMAND_FAILED_MESSAGE "Command failed"
+#define DATE_COMMAND_ON_SHELL "date"
 
 // Function to check if the two stings are the same
 int stringsAreEquals(char* str1, char* str2)
 {	
-    if(strncmp(str1, str2, strlen(str1))==0 && strncmp(str1, str2, strlen(str2))==0)
+    if(strncmp(str1, str2, strlen(str1))==0)
     {
 		return 1;
 	}
@@ -35,16 +38,19 @@ void execute_fortune()
 void execute_date()
 {
     pid_t pid = fork();
-    if (pid == -1) {
-        perror("fork failed");
+    if (pid == -1)
+    {
+        perror(FORK_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-    } else if (pid == 0) {
+    } else if (pid == 0)
+    {
         // Child process to execute system's date command
-        char *args[] = {"date", NULL};
+        char *args[] = {DATE_COMMAND_ON_SHELL, NULL};
         execvp(args[0], args);
-        perror("Command failed");
+        perror(COMMAND_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-    } else {
+    } else 
+    {
         // Parent process waits for his child
         wait(NULL);
     }
