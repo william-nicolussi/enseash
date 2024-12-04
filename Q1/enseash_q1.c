@@ -1,11 +1,15 @@
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #define EXIT_STRING "exit"
 #define MAX_SIZE 128
 #define START_MESSAGE "Welcome to ENSEA Tiny Shell.\nTo leave, type '" EXIT_STRING "'.\n"
 #define PROMPT_MESSAGE "enseash % "
 #define EXIT_MESSAGE "Bye bye...\n"
+#define READ_ERROR_MESSAGE "\nError: Unable to read input.\n"
+#define WRITE_ERROR_MESSAGE "\nError: Unable to write.\n"
 
 // Function to check if input matches EXIT_STRING
 int is_EXIT_STRING(char *input)
@@ -23,21 +27,39 @@ int main()
     int bytesRead;
 
 	// Display the start message only at the beginning
-	write(STDOUT_FILENO, START_MESSAGE, strlen(START_MESSAGE));
+	if(write(STDOUT_FILENO, START_MESSAGE, strlen(START_MESSAGE))==-1)
+	{
+		perror(WRITE_ERROR_MESSAGE);
+        exit(EXIT_FAILURE);
+	}
 	
     do{
-        // Display prompt
-        write(STDOUT_FILENO, PROMPT_MESSAGE, strlen(PROMPT_MESSAGE));
+        // Display prompt and handle errors
+        if(write(STDOUT_FILENO, PROMPT_MESSAGE, strlen(PROMPT_MESSAGE))==-1)
+        {
+			perror(WRITE_ERROR_MESSAGE);
+            exit(EXIT_FAILURE);
+		}
 
-        // Read input
+        // Read input and handle errors or EOF
         bytesRead = read(0, inputUserBuffer, sizeof(inputUserBuffer));
+        if (bytesRead <= 0)
+        {
+            perror(READ_ERROR_MESSAGE);
+            exit(EXIT_FAILURE);
+        }
+
 
         // Null-terminate the input string (remove trailing newline)
         inputUserBuffer[bytesRead - 1] = '\0';
 
     } while (!is_EXIT_STRING(inputUserBuffer));
 
-	write(STDOUT_FILENO, EXIT_MESSAGE, strlen(EXIT_MESSAGE));
+	if(write(STDOUT_FILENO, EXIT_MESSAGE, strlen(EXIT_MESSAGE)))
+	{
+		perror(WRITE_ERROR_MESSAGE);
+		exit(EXIT_FAILURE);
+	}
 	
-    return 0;
+    exit(EXIT_SUCCESS);
 }
