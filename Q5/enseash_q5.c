@@ -15,6 +15,8 @@
 #define DISPLAY_SHELL_ERROR_MESSAGE "\nError: Unable to write.\n"
 #define FORK_FAILED_MESSAGE "fork failed"
 #define COMMAND_FAILED_MESSAGE "Command failed"
+#define STRING_SHOW_EXIT_SUB_FUNCTION "[exit:%d | %lld ms] "
+#define STRING_SHOW_SIGN_SUB_FUNCTION "[sign:%d | %lld ms] "
 
 // ----- PROTOTYPES -----
 int stringsAreEquals(char* str1, char* str2);
@@ -35,29 +37,32 @@ int main()
         // Display the prompt, including the status and timing information from the last command
         displayString(statusBuffer);
         displayString(PROMPT_MESSAGE);
-
         readUserInput(inputUserBuffer);
         execute_sub_command(inputUserBuffer, statusBuffer);
     } while (stringsAreEquals(inputUserBuffer, EXIT_STRING) == 0);
 
     displayString(EXIT_MESSAGE);
-
     return 0;
 }
 
 // ----- FUNCTIONS -----
 
+// Function to read what user typed and handle error
 void readUserInput(char* inputUserBuffer)
 {
     int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
-    if (bytesRead == 0) {
-        // EOF detected (Ctrl+D)
-        strcpy(inputUserBuffer, EXIT_STRING); // Simulate typing "exit"
-    } else if (bytesRead == -1) {
+    if (bytesRead == 0)
+    {
+        strcpy(inputUserBuffer, EXIT_STRING);
+    }
+    else if (bytesRead == -1)
+    {
         perror(READ_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
-    } else {
-        inputUserBuffer[bytesRead - 1] = '\0'; // Remove newline
+    }
+    else
+    {
+        inputUserBuffer[bytesRead - 1] = '\0'; // change '\n' with '\0'
     }
 }
 
@@ -89,15 +94,19 @@ long long calculateElapsedTime(struct timeval start, struct timeval end)
 void execute_sub_command(char* strInputShell, char* statusBuffer)
 {
     // If user typed EXIT_STRING, then do nothing
-    if (stringsAreEquals(strInputShell, EXIT_STRING)) {
+    if (stringsAreEquals(strInputShell, EXIT_STRING))
+    {
         return;
     }
 
     pid_t pid = fork();
-    if (pid == -1) {
+    if (pid == -1)
+    {
         perror(FORK_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-    } else if (pid == 0) {
+    }
+    else if (pid == 0)
+    {
         // Child process to execute the user's command
         char *args[] = {strInputShell, NULL};
         execvp(args[0], args);
@@ -105,24 +114,27 @@ void execute_sub_command(char* strInputShell, char* statusBuffer)
         // If execvp fails, display COMMAND_NOT_FOUND_MESSAGE and exit child
         perror(COMMAND_NOT_FOUND_MESSAGE);
         exit(EXIT_FAILURE);
-    } else {
+    }
+    else
+    {
         // Parent process waits for the child and measures execution time
         struct timeval start, end;
-        gettimeofday(&start, NULL); // Start time before waiting for the child
-
         int status;
+        gettimeofday(&start, NULL); // Start time before waiting for the child
         waitpid(pid, &status, 0);
-
         gettimeofday(&end, NULL); // End time after the child finishes
         long long elapsedTime = calculateElapsedTime(start, end);
 
         // Update the statusBuffer with timing and exit information
-        if (WIFEXITED(status)) {
+        if (WIFEXITED(status))
+        {
             int exitCode = WEXITSTATUS(status);
-            snprintf(statusBuffer, MAX_SIZE, "[exit:%d | %lld ms] ", exitCode, elapsedTime);
-        } else if (WIFSIGNALED(status)) {
+            snprintf(statusBuffer, MAX_SIZE, STRING_SHOW_EXIT_SUB_FUNCTION, exitCode, elapsedTime);
+        }
+        else if (WIFSIGNALED(status))
+        {
             int signalNumber = WTERMSIG(status);
-            snprintf(statusBuffer, MAX_SIZE, "[sign:%d | %lld ms] ", signalNumber, elapsedTime);
+            snprintf(statusBuffer, MAX_SIZE, STRING_SHOW_SIGN_SUB_FUNCTION, signalNumber, elapsedTime);
         }
     }
 }
