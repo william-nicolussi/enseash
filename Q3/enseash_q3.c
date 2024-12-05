@@ -21,12 +21,10 @@ void displayString(char* strToWrite);
 void execute_sub_command(char* strInputShell);
 void readUserInput(char* inputUserBuffer);
 
-
 // ----- MAIN -----
 int main()
 {
     char inputUserBuffer[MAX_SIZE];
-
     displayString(START_MESSAGE);
 
     do {
@@ -36,23 +34,31 @@ int main()
     } while (stringsAreEquals(inputUserBuffer, EXIT_STRING) == 0);
 
     displayString(EXIT_MESSAGE);
-
     return 0;
 }
 
 // ----- FUNCTIONS -----
-
 void readUserInput(char* inputUserBuffer)
 {
     int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
-    if (bytesRead == 0) {
-        // EOF detected (Ctrl+D)
-        strcpy(inputUserBuffer, EXIT_STRING); // Simulate typing "exit"
-    } else if (bytesRead == -1) {
+    
+    // If EOF detected (Ctrl+D), then inoutUserBuffer becomes EXIT_STRING
+    // If read(...) failed, handle error
+    // Otherwise store what user typed
+    if (bytesRead == 0)
+    {
+        strcpy(inputUserBuffer, EXIT_STRING);
+        displayString(EXIT_STRING);
+        displayString("\n");
+    }
+    else if (bytesRead == -1)
+    {
         perror(READ_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
-    } else {
-		        inputUserBuffer[bytesRead - 1] = '\0'; // Remove newline
+    }
+    else
+    {
+		inputUserBuffer[bytesRead - 1] = '\0'; // change '\n' with '\0'
     }
 }
 
@@ -68,7 +74,8 @@ int stringsAreEquals(char* str1, char* str2)
 // Display the message or print perror and exit
 void displayString(char* strToWrite)
 {
-    if (write(STDOUT_FILENO, strToWrite, strlen(strToWrite)) == -1) {
+    if (write(STDOUT_FILENO, strToWrite, strlen(strToWrite)) == -1)
+    {
         perror(DISPLAY_SHELL_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     }
@@ -78,16 +85,21 @@ void displayString(char* strToWrite)
 void execute_sub_command(char* strInputShell)
 {
     // If user typed EXIT_STRING, then do nothing
-    if (stringsAreEquals(strInputShell, EXIT_STRING)) {
+    if (stringsAreEquals(strInputShell, EXIT_STRING))
+    {
         return;
     }
 
+	// Otherwise create a child process to execute the command
     pid_t pid = fork();
-    if (pid == -1) {
+    if (pid == -1)
+    {
         perror(FORK_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
         
-           } else if (pid == 0) {
+	}
+	else if (pid == 0)
+	{
         // Child process to execute the user's command
         char *args[] = {strInputShell, NULL};
         execvp(args[0], args);
@@ -95,14 +107,16 @@ void execute_sub_command(char* strInputShell)
         // If execvp fails, display COMMAND_NOT_FOUND_MESSAGE and exit child
         perror(COMMAND_NOT_FOUND_MESSAGE);
         exit(EXIT_FAILURE);
-    } else {
-		
-		        // Parent process waits for the child
+    }
+    else
+    {	
+		// Parent process waits for the child
         int status;
         waitpid(pid, &status, 0);
 
         // If child terminated with an error, notify the user
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+        {
             displayString(COMMAND_NOT_FOUND_MESSAGE);
         }
     }
