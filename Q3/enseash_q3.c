@@ -26,7 +26,7 @@
 int stringsAreEquals(char* str1, char* str2);
 void writeOrExit(char* strToWrite, char* strErrorMessage);
 void execute_fortune();
-void execute_date();
+void execute_fork(char* strInputShell);
 
 //----- MAIN -----
 int main()
@@ -66,19 +66,14 @@ int main()
 		{
 			execute_fortune();
 		}
-		else if (stringsAreEquals(inputUserBuffer, DATE_STRING_INPUT))
-		{
-			execute_date();
-		}
 		else if (stringsAreEquals(inputUserBuffer, EXIT_STRING))
 		{
 			programHasToStop = 1;
 		}
 		else
 		{
-			writeOrExit(COMMAND_NOT_FOUND_MESSAGE, WRITE_ERROR_MESSAGE);
+			execute_fork(inputUserBuffer);
 		}
-
     } while (!programHasToStop);
 
 	writeOrExit(EXIT_MESSAGE, WRITE_ERROR_MESSAGE);
@@ -118,8 +113,8 @@ void execute_fortune()
 	}
 }
 
-// Function to execute if user enters DATE_STRING_INPUT
-void execute_date()
+// Function to execute the users' input on the shell 
+void execute_fork(char* strInputShell)
 {
     pid_t pid = fork();
     if (pid == -1)
@@ -129,7 +124,7 @@ void execute_date()
     } else if (pid == 0)
     {
         // Child process to execute system's date command
-        char *args[] = {DATE_COMMAND_ON_SHELL, NULL};
+        char *args[] = {strInputShell, NULL};
         execvp(args[0], args);
         perror(COMMAND_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
