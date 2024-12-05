@@ -9,7 +9,7 @@
 #define PROMPT_MESSAGE "enseash % "
 #define EXIT_MESSAGE "Bye bye...\n"
 #define READ_ERROR_MESSAGE "\nError: Unable to read input.\n"
-#define WRITE_ERROR_MESSAGE "\nError: Unable to write.\n"
+#define DISPLAY_SHELL_ERROR_MESSAGE "\nError: Unable to write.\n"
 
 // Function to check if input matches EXIT_STRING
 int is_EXIT_STRING(char *input)
@@ -21,25 +21,27 @@ int is_EXIT_STRING(char *input)
     return 0;
 }
 
+// Display the message or print perror and exit
+void displayString(char* strToWrite)
+{
+	if(write(STDOUT_FILENO, strToWrite, strlen(strToWrite))==-1)
+	{
+		perror(DISPLAY_SHELL_ERROR_MESSAGE);
+        exit(EXIT_FAILURE);
+	}
+}
+
 int main()
 {
     char inputUserBuffer[MAX_SIZE];
     int bytesRead;
 
 	// Display the start message only at the beginning
-	if(write(STDOUT_FILENO, START_MESSAGE, strlen(START_MESSAGE))==-1)
-	{
-		perror(WRITE_ERROR_MESSAGE);
-        exit(EXIT_FAILURE);
-	}
+	displayString(START_MESSAGE);
 	
     do{
-        // Display prompt and handle errors
-        if(write(STDOUT_FILENO, PROMPT_MESSAGE, strlen(PROMPT_MESSAGE))==-1)
-        {
-			perror(WRITE_ERROR_MESSAGE);
-            exit(EXIT_FAILURE);
-		}
+        // Display prompt and handle errors		
+		displayString(PROMPT_MESSAGE);
 
         // Read input and handle errors or EOF
         bytesRead = read(0, inputUserBuffer, sizeof(inputUserBuffer));
@@ -49,17 +51,12 @@ int main()
             exit(EXIT_FAILURE);
         }
 
-
         // Null-terminate the input string (remove trailing newline)
         inputUserBuffer[bytesRead - 1] = '\0';
 
     } while (!is_EXIT_STRING(inputUserBuffer));
 
-	if(write(STDOUT_FILENO, EXIT_MESSAGE, strlen(EXIT_MESSAGE)))
-	{
-		perror(WRITE_ERROR_MESSAGE);
-		exit(EXIT_FAILURE);
-	}
+	displayString(EXIT_MESSAGE);
 	
     exit(EXIT_SUCCESS);
 }
