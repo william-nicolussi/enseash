@@ -13,40 +13,45 @@
 #define READ_ERROR_MESSAGE "\nError: Unable to read input.\n"
 #define DISPLAY_SHELL_ERROR_MESSAGE "\nError: Unable to write.\n"
 
-#define FORTUNE_MESSAGE "Today is what happened to yesterday.\n"
-#define FORTUNE_STRING_INPUT "fortune"
 #define FORK_FAILED_MESSAGE "fork failed"
 #define COMMAND_FAILED_MESSAGE "Command failed"
 
 //----- PROTOTYPES -----
 int stringsAreEquals(char* str1, char* str2);
-void displayShell(char* strToWrite);
-void execute_fork(char* strInputShell);
+void displayString(char* strToWrite);
+void execute_sub_command(char* strInputShell);
+void readUserInput(char* inputUserBuffer);
 
 //----- MAIN -----
 int main()
 {
     char inputUserBuffer[MAX_SIZE];
 
-	displayShell(START_MESSAGE);
+	displayString(START_MESSAGE);
 
     do{
-		displayShell(PROMPT_MESSAGE);
-        int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
-        if (bytesRead <= 0)
-        {
-            perror(READ_ERROR_MESSAGE);
-            exit(EXIT_FAILURE);
-        }
-        inputUserBuffer[bytesRead - 1] = '\0';
+		displayString(PROMPT_MESSAGE);
+		
+        readUserInput(inputUserBuffer);
         
-		execute_fork(inputUserBuffer);
+		execute_sub_command(inputUserBuffer);
 
-    } while (!stringsAreEquals(inputUserBuffer, EXIT_STRING));
+    } while (stringsAreEquals(inputUserBuffer, EXIT_STRING) == 0);
 
-	displayShell(EXIT_MESSAGE);
+	displayString(EXIT_MESSAGE);
 		
     return 0;
+}
+
+void readUserInput(char* inputUserBuffer)
+{
+	int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
+	if (bytesRead <= 0)
+	{
+		perror(READ_ERROR_MESSAGE);
+		exit(EXIT_FAILURE);
+	}
+	inputUserBuffer[bytesRead - 1] = '\0';
 }
 
 // Function to check if the two stings are the same
@@ -60,7 +65,7 @@ int stringsAreEquals(char* str1, char* str2)
 }
 
 // Display the message or print perror and exit
-void displayShell(char* strToWrite)
+void displayString(char* strToWrite)
 {
 	if(write(STDOUT_FILENO, strToWrite, strlen(strToWrite))==-1)
 	{
@@ -69,9 +74,14 @@ void displayShell(char* strToWrite)
 	}
 }
 
-// Function to execute the users' input on the shell 
-void execute_fork(char* strInputShell)
+// Function to execute the user's input on the shell 
+void execute_sub_command(char* strInputShell)
 {
+    // If user typed EXIT_STRING, then do nothing
+    if (stringsAreEquals(strInputShell, EXIT_STRING)) {
+        return;
+    }
+
     pid_t pid = fork();
     if (pid == -1)
     {
@@ -81,12 +91,11 @@ void execute_fork(char* strInputShell)
     {
         // Child process to execute system's date command
         char *args[] = {strInputShell, NULL};
-        execvp(args[0], args);
+        execvp(args[0], args); 
         perror(COMMAND_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-    } else 
-    {
-        // Parent process waits for his child
+            } else {
+        // Parent process waits for the child
         wait(NULL);
     }
 }

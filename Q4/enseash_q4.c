@@ -18,7 +18,7 @@
 // ----- PROTOTYPES -----
 int stringsAreEquals(char* str1, char* str2);
 void displayString(char* strToWrite);
-void execute_sub_command(char* strInputShell);
+void execute_sub_command(char* strInputShell, char* statusBuffer);
 void readUserInput(char* inputUserBuffer);
 
 
@@ -26,13 +26,17 @@ void readUserInput(char* inputUserBuffer);
 int main()
 {
     char inputUserBuffer[MAX_SIZE];
+    char statusBuffer[MAX_SIZE] = ""; // Store the status to display in the prompt
 
     displayString(START_MESSAGE);
 
     do {
-		displayString(PROMPT_MESSAGE);
+        // Display the prompt, including the status information from the last command
+        displayString(statusBuffer);
+        displayString(PROMPT_MESSAGE);
+       
         readUserInput(inputUserBuffer);
-        execute_sub_command(inputUserBuffer);
+        execute_sub_command(inputUserBuffer, statusBuffer);
     } while (stringsAreEquals(inputUserBuffer, EXIT_STRING) == 0);
 
     displayString(EXIT_MESSAGE);
@@ -52,7 +56,7 @@ void readUserInput(char* inputUserBuffer)
         perror(READ_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     } else {
-		        inputUserBuffer[bytesRead - 1] = '\0'; // Remove newline
+        inputUserBuffer[bytesRead - 1] = '\0'; // Remove newline
     }
 }
 
@@ -75,7 +79,7 @@ void displayString(char* strToWrite)
 }
 
 // Function to execute the user's input on the shell
-void execute_sub_command(char* strInputShell)
+void execute_sub_command(char* strInputShell, char* statusBuffer)
 {
     // If user typed EXIT_STRING, then do nothing
     if (stringsAreEquals(strInputShell, EXIT_STRING)) {
@@ -86,8 +90,7 @@ void execute_sub_command(char* strInputShell)
     if (pid == -1) {
         perror(FORK_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-        
-           } else if (pid == 0) {
+    } else if (pid == 0) {
         // Child process to execute the user's command
         char *args[] = {strInputShell, NULL};
         execvp(args[0], args);
@@ -96,14 +99,17 @@ void execute_sub_command(char* strInputShell)
         perror(COMMAND_NOT_FOUND_MESSAGE);
         exit(EXIT_FAILURE);
     } else {
-		
-		        // Parent process waits for the child
+        // Parent process waits for the child
         int status;
         waitpid(pid, &status, 0);
 
-        // If child terminated with an error, notify the user
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-            displayString(COMMAND_NOT_FOUND_MESSAGE);
+        // Update the statusBuffer based on the child process' exit information
+        if (WIFEXITED(status)) {
+            int exitCode = WEXITSTATUS(status);
+            snprintf(statusBuffer, MAX_SIZE, "[exit:%d] ", exitCode);
+        } else if (WIFSIGNALED(status)) {
+            int signalNumber = WTERMSIG(status);
+            snprintf(statusBuffer, MAX_SIZE, "[sign:%d] ", signalNumber);
         }
     }
 }
