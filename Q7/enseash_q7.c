@@ -6,7 +6,6 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <sys/stat.h>
 
 #define EXIT_STRING "exit"
 #define MAX_SIZE 128
@@ -15,30 +14,26 @@
 #define EXIT_MESSAGE "Bye bye...\n"
 #define COMMAND_NOT_FOUND_MESSAGE "Command not found.\n"
 #define READ_ERROR_MESSAGE "Error: Unable to read input.\n"
+#define OPEN_INPUT_FILE_ERROR_MESSAGE "Error opening input file"
+#define OPEN_OUTPUT_FILE_ERROR_MESSAGE "Error opening output file"
+#define DISPLAY_SHELL_ERROR_MESSAGE "\nError: Unable to write.\n"
 #define FORK_FAILED_MESSAGE "fork failed"
+#define STRING_SHOW_EXIT_SUB_FUNCTION "[exit:%d | %.3f ms] %s"
+#define STRING_SHOW_SIGN_SUB_FUNCTION "[sign:%d | %.3f ms] %s"
+#define STRING_SHOW_UNKNOWN_SUB_FUNCTION "[unknown | %.3f ms] %s"
+#define FILE_PERMISSIONS 0644 /* rw-r--r--: Owner (read/write), Group (read-only), Others (read-only) */
 
 // ----- PROTOTYPES -----
 int stringsAreEquals(char* str1, char* str2);
 void displayString(char* strToWrite);
 void executeCommand(char* input);
 void readUserInput(char* inputUserBuffer);
-void handle_sigint(int sig);
-int isFile(char* path);
 
 // ----- MAIN -----
 int main()
 {
     char inputUserBuffer[MAX_SIZE];
-
-    // Set up signal handling for SIGINT (Ctrl+C)
-    struct sigaction sa;
-    sa.sa_handler = handle_sigint;  // Set custom signal handler
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;      // Restart interrupted system calls
-    sigaction(SIGINT, &sa, NULL);
-
     displayString(START_MESSAGE);
-
     do {
         displayString(PROMPT_MESSAGE);
         readUserInput(inputUserBuffer);
@@ -54,22 +49,30 @@ int main()
 // Function to read user input from the shell
 void readUserInput(char* inputUserBuffer)
 {
+	// If EOF detected (Ctrl+D), then inputUserBuffer becomes EXIT_STRING
+    // If read(...) failed, handle error
+    // Otherwise store what user typed
     int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
-    if (bytesRead == 0) {
-        // EOF detected (Ctrl+D)
-        strcpy(inputUserBuffer, EXIT_STRING); // Simulate typing "exit"
-    } else if (bytesRead == -1) {
+    if (bytesRead == 0)
+    {
+        strcpy(inputUserBuffer, EXIT_STRING);
+    }
+    else if (bytesRead == -1)
+    {
         perror(READ_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
-    } else {
-        inputUserBuffer[bytesRead - 1] = '\0'; // Remove newline
+    }
+    else
+    {
+        inputUserBuffer[bytesRead - 1] = '\0'; // change '\n' with '\0'
     }
 }
 
 // Function to check if the two strings are the same
 int stringsAreEquals(char* str1, char* str2)
 {
-    if (strncmp(str1, str2, strlen(str1)) == 0) {
+    if (strncmp(str1, str2, strlen(str1)) == 0)
+    {
         return 1;
     }
     return 0;
@@ -78,26 +81,18 @@ int stringsAreEquals(char* str1, char* str2)
 // Function to display the message or print perror and exit
 void displayString(char* strToWrite)
 {
-    if (write(STDOUT_FILENO, strToWrite, strlen(strToWrite)) == -1) {
-        perror("Error: Unable to write.");
+    if (write(STDOUT_FILENO, strToWrite, strlen(strToWrite)) == -1)
+    {
+        perror(DISPLAY_SHELL_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     }
-}
-
-// Function to check if a given path is a file
-int isFile(char* path)
-{
-    struct stat pathStat;
-    if (stat(path, &pathStat) == 0 && S_ISREG(pathStat.st_mode)) {
-        return 1; // It is a file
-    }
-    return 0; // Not a file
 }
 
 // Function to execute the user's input on the shell
 void executeCommand(char* input)
 {
-    if (stringsAreEquals(input, EXIT_STRING)) {
+    if (stringsAreEquals(input, EXIT_STRING))
+    {
         return;
     }
 
@@ -109,34 +104,73 @@ void executeCommand(char* input)
     char* args[MAX_SIZE / 2 + 1]; // Array to hold command and its arguments
     char* token = strtok(input, " ");
     int argCount = 0;
-
-    while (token != NULL) {
-        args[argCount++] = token;
+    char* inputFile = NULL;
+    char* outputFile = NULL;
+    int redirectInput = 0, redirectOutput = 0;
+    while (token != NULL)
+    {
+        if (strcmp(token, "<") == 0)
+        {
+            redirectInput = 1;
+            token = strtok(NULL, " ");
+            inputFile = token;
+        }
+        else if (strcmp(token, ">") == 0)
+        {
+            redirectOutput = 1;
+            token = strtok(NULL, " ");
+            outputFile = token;
+        }
+        else
+        {
+            args[argCount++] = token;
+        }
         token = strtok(NULL, " ");
     }
-    args[argCount] = NULL; // Null-terminate the arguments array
-
-    // Check if the input is a file and prepend "cat" if needed
-    if (argCount == 1 && isFile(args[0])) {
-        args[1] = args[0];  // Move the file path to the second argument
-        args[0] = "cat";    // Prepend "cat" command
-        args[2] = NULL;     // Null-terminate the array
-    }
+    args[argCount] = NULL;
 
     pid_t pid = fork();
-    if (pid == -1) {
+    if (pid == -1)
+    {
         perror(FORK_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-    } else if (pid == 0) {
+    }
+    else if (pid == 0)
+    {
         // Child process to execute the command
         // Restore default behavior for SIGINT in the child process
         signal(SIGINT, SIG_DFL);
-        execvp(args[0], args);
+        if (redirectInput && inputFile)
+        {
+            int fdInput = open(inputFile, O_RDONLY);
+            if (fdInput == -1)
+            {
+                perror(OPEN_INPUT_FILE_ERROR_MESSAGE);
+                exit(EXIT_FAILURE);
+            }
+            dup2(fdInput, STDIN_FILENO);
+            close(fdInput);
+        }
+
+        if (redirectOutput && outputFile)
+        {
+            int fdOutput = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, FILE_PERMISSIONS);
+            if (fdOutput == -1)
+            {
+                perror(OPEN_OUTPUT_FILE_ERROR_MESSAGE);
+                exit(EXIT_FAILURE);
+            }
+            dup2(fdOutput, STDOUT_FILENO);
+            close(fdOutput);
+        }
 
         // If execvp fails, display error and exit child
+        execvp(args[0], args);
         perror(COMMAND_NOT_FOUND_MESSAGE);
         exit(EXIT_FAILURE);
-    } else {
+    }
+    else
+    {
         // Parent process waits for the child
         int status;
         waitpid(pid, &status, 0);
@@ -146,22 +180,20 @@ void executeCommand(char* input)
         double elapsedTime = (end.tv_sec - start.tv_sec) * 1000.0; // Seconds to milliseconds
         elapsedTime += (end.tv_usec - start.tv_usec) / 1000.0;     // Microseconds to milliseconds
 
-        // Prepare and display the status message
+        // Prepare and display the prompt with exit status and time
         char buffer[MAX_SIZE];
-        if (WIFEXITED(status)) {
-            snprintf(buffer, sizeof(buffer), "[exit:%d | %.3f ms]\n", WEXITSTATUS(status), elapsedTime);
-        } else if (WIFSIGNALED(status)) {
-            snprintf(buffer, sizeof(buffer), "[sign:%d | %.3f ms]\n", WTERMSIG(status), elapsedTime);
-        } else {
-            snprintf(buffer, sizeof(buffer), "[unknown | %.3f ms]\n", elapsedTime);
+        if (WIFEXITED(status))
+        {
+            snprintf(buffer, sizeof(buffer), STRING_SHOW_EXIT_SUB_FUNCTION, WEXITSTATUS(status), elapsedTime, PROMPT_MESSAGE);
+        }
+        else if (WIFSIGNALED(status))
+        {
+            snprintf(buffer, sizeof(buffer), STRING_SHOW_SIGN_SUB_FUNCTION, WTERMSIG(status), elapsedTime, PROMPT_MESSAGE);
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), STRING_SHOW_UNKNOWN_SUB_FUNCTION, elapsedTime, PROMPT_MESSAGE);
         }
         displayString(buffer);
     }
-}
-
-// Custom signal handler for SIGINT (Ctrl+C)
-void handle_sigint(int sig)
-{
-    (void)sig; // Mark parameter as unused to suppress warning
-    displayString("\n"); // Print a newline and avoid triggering the prompt prematurely
 }
