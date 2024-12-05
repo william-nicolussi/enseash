@@ -26,23 +26,20 @@ void readUserInput(char* inputUserBuffer);
 int main()
 {
     char inputUserBuffer[MAX_SIZE];
-
 	displayString(START_MESSAGE);
 
     do{
 		displayString(PROMPT_MESSAGE);
-		
         readUserInput(inputUserBuffer);
-        
 		execute_sub_command(inputUserBuffer);
 
     } while (stringsAreEquals(inputUserBuffer, EXIT_STRING) == 0);
 
 	displayString(EXIT_MESSAGE);
-		
     return 0;
 }
 
+// Function to read input and handle possible error
 void readUserInput(char* inputUserBuffer)
 {
 	int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
@@ -82,19 +79,23 @@ void execute_sub_command(char* strInputShell)
         return;
     }
 
+	// Otherwise create a child process to execute the command
     pid_t pid = fork();
     if (pid == -1)
     {
         perror(FORK_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-    } else if (pid == 0)
+    }
+    else if (pid == 0)
     {
-        // Child process to execute system's date command
+        // Child process to execute command
         char *args[] = {strInputShell, NULL};
         execvp(args[0], args); 
         perror(COMMAND_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
-            } else {
+     }
+     else
+     {
         // Parent process waits for the child
         wait(NULL);
     }
