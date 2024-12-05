@@ -11,7 +11,7 @@
 #define EXIT_MESSAGE "Bye bye...\n"
 #define COMMAND_NOT_FOUND_MESSAGE "Command not found.\n"
 #define READ_ERROR_MESSAGE "\nError: Unable to read input.\n"
-#define WRITE_ERROR_MESSAGE "\nError: Unable to write.\n"
+#define DISPLAY_SHELL_ERROR_MESSAGE "\nError: Unable to write.\n"
 
 #define FORTUNE_MESSAGE "Today is what happened to yesterday.\n"
 #define FORTUNE_STRING_INPUT "fortune"
@@ -20,8 +20,7 @@
 
 //----- PROTOTYPES -----
 int stringsAreEquals(char* str1, char* str2);
-void writeOrExit(char* strToWrite, char* strErrorMessage);
-void execute_fortune();
+void displayShell(char* strToWrite);
 void execute_fork(char* strInputShell);
 
 //----- MAIN -----
@@ -29,10 +28,10 @@ int main()
 {
     char inputUserBuffer[MAX_SIZE];
 
-	writeOrExit(START_MESSAGE, WRITE_ERROR_MESSAGE);
+	displayShell(START_MESSAGE);
 
     do{
-		writeOrExit(PROMPT_MESSAGE, WRITE_ERROR_MESSAGE);
+		displayShell(PROMPT_MESSAGE);
         int bytesRead = read(STDIN_FILENO, inputUserBuffer, MAX_SIZE - 1);
         if (bytesRead <= 0)
         {
@@ -41,25 +40,14 @@ int main()
         }
         inputUserBuffer[bytesRead - 1] = '\0';
         
-        // If string correspond to a command, execute the corresponding function
-        // otherwise write the COMMAND_NOT_FOUND_MESSAGE
-		if(stringsAreEquals(inputUserBuffer, FORTUNE_STRING_INPUT))
-		{
-			execute_fortune();
-		}
-		else
-		{
-			execute_fork(inputUserBuffer);
-		}
+		execute_fork(inputUserBuffer);
 
     } while (!stringsAreEquals(inputUserBuffer, EXIT_STRING));
 
-	writeOrExit(EXIT_MESSAGE, WRITE_ERROR_MESSAGE);
-	
+	displayShell(EXIT_MESSAGE);
+		
     return 0;
 }
-
-//----- OTHER FUNCTIONS -----
 
 // Function to check if the two stings are the same
 int stringsAreEquals(char* str1, char* str2)
@@ -72,21 +60,11 @@ int stringsAreEquals(char* str1, char* str2)
 }
 
 // Display the message or print perror and exit
-void writeOrExit(char* strToWrite, char* strErrorMessage)
+void displayShell(char* strToWrite)
 {
 	if(write(STDOUT_FILENO, strToWrite, strlen(strToWrite))==-1)
 	{
-		perror(strErrorMessage);
-        exit(EXIT_FAILURE);
-	}
-}
-
-// Function to execute if user enters FORTUNE_STRING_INPUT
-void execute_fortune()
-{
-    if(write(STDOUT_FILENO, FORTUNE_MESSAGE, strlen(FORTUNE_MESSAGE))==-1)
-    {
-		perror(WRITE_ERROR_MESSAGE);
+		perror(DISPLAY_SHELL_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
 	}
 }
