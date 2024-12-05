@@ -57,6 +57,5 @@ int main()
     } while (!is_EXIT_STRING(inputUserBuffer));
 
 	displayString(EXIT_MESSAGE);
-	
     exit(EXIT_SUCCESS);
 }
