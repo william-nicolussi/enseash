@@ -50,7 +50,6 @@ int main()
 		else
 		{
 			execute_fork(inputUserBuffer);
-			//writeOrExit(COMMAND_NOT_FOUND_MESSAGE, WRITE_ERROR_MESSAGE);
 		}
 
     } while (!stringsAreEquals(inputUserBuffer, EXIT_STRING));
@@ -92,7 +91,7 @@ void execute_fortune()
 	}
 }
 
-// Function to execute if user enters DATE_STRING_INPUT
+// Function to execute the users' input on the shell 
 void execute_fork(char* strInputShell)
 {
     pid_t pid = fork();
