@@ -15,16 +15,14 @@
 
 #define FORTUNE_MESSAGE "Today is what happened to yesterday.\n"
 #define FORTUNE_STRING_INPUT "fortune"
-#define DATE_STRING_INPUT "date"
 #define FORK_FAILED_MESSAGE "fork failed"
 #define COMMAND_FAILED_MESSAGE "Command failed"
-#define DATE_COMMAND_ON_SHELL "date"
 
 //----- PROTOTYPES -----
 int stringsAreEquals(char* str1, char* str2);
 void writeOrExit(char* strToWrite, char* strErrorMessage);
 void execute_fortune();
-void execute_date();
+void execute_fork(char* strInputShell);
 
 //----- MAIN -----
 int main()
@@ -49,13 +47,10 @@ int main()
 		{
 			execute_fortune();
 		}
-		else if (stringsAreEquals(inputUserBuffer, DATE_STRING_INPUT))
-		{
-			execute_date();
-		}
 		else
 		{
-			writeOrExit(COMMAND_NOT_FOUND_MESSAGE, WRITE_ERROR_MESSAGE);
+			execute_fork(inputUserBuffer);
+			//writeOrExit(COMMAND_NOT_FOUND_MESSAGE, WRITE_ERROR_MESSAGE);
 		}
 
     } while (!stringsAreEquals(inputUserBuffer, EXIT_STRING));
@@ -98,7 +93,7 @@ void execute_fortune()
 }
 
 // Function to execute if user enters DATE_STRING_INPUT
-void execute_date()
+void execute_fork(char* strInputShell)
 {
     pid_t pid = fork();
     if (pid == -1)
@@ -108,7 +103,7 @@ void execute_date()
     } else if (pid == 0)
     {
         // Child process to execute system's date command
-        char *args[] = {DATE_COMMAND_ON_SHELL, NULL};
+        char *args[] = {strInputShell, NULL};
         execvp(args[0], args);
         perror(COMMAND_FAILED_MESSAGE);
         exit(EXIT_FAILURE);
